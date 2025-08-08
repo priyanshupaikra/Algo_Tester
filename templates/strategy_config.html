@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Strategy Configuration - Algorithmic Trading Backtester{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center space-x-4">
+            <i class="fas fa-cog text-3xl text-primary-600"></i>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Strategy Configuration</h1>
+                <p class="text-gray-600">Configure and run your algorithmic trading backtest</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Form -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">
+                <i class="fas fa-sliders-h me-2 text-gray-600"></i>Backtest Parameters
+            </h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('run_backtest') }}" id="backtestForm" class="p-6 space-y-6">
+            <!-- Strategy Selection -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <label for="strategy_type" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-brain me-2"></i>Trading Strategy
+                    </label>
+                    <select id="strategy_type" name="strategy_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Select a strategy...</option>
+                        <option value="ma_crossover">Moving Average Crossover</option>
+                        <option value="mean_reversion">Mean Reversion (Bollinger Bands)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Choose your algorithmic trading strategy</p>
+                </div>
+
+                <div>
+                    <label for="symbol" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chart-bar me-2"></i>Stock Symbol
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="symbol" name="symbol" value="AAPL" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase"
+                               placeholder="Enter symbol (e.g., AAPL)">
+                        <div id="symbolStatus" class="absolute right-3 top-3 hidden">
+                            <i class="fas fa-spinner fa-spin text-gray-400" id="symbolLoading"></i>
+                            <i class="fas fa-check-circle text-success-500 hidden" id="symbolValid"></i>
+                            <i class="fas fa-times-circle text-danger-500 hidden" id="symbolInvalid"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Enter a valid stock ticker symbol</p>
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar-alt me-2"></i>Start Date
+                    </label>
+                    <input type="date" id="start_date" name="start_date" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Backtest start date</p>
+                </div>
+
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar-check me-2"></i>End Date
+                    </label>
+                    <input type="date" id="end_date" name="end_date" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Backtest end date</p>
+                </div>
+            </div>
+
+            <!-- Initial Capital -->
+            <div>
+                <label for="initial_capital" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-dollar-sign me-2"></i>Initial Capital
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-gray-500">$</span>
+                    <input type="number" id="initial_capital" name="initial_capital" value="10000" min="1000" step="1000" required
+                           class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Starting capital for the backtest (minimum $1,000)</p>
+            </div>
+
+            <!-- Strategy-specific Parameters -->
+            <div id="strategyParams" class="space-y-6 hidden">
+                <!-- Moving Average Parameters -->
+                <div id="maParams" class="hidden border-t pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-chart-line me-2 text-primary-600"></i>Moving Average Parameters
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label for="short_window" class="block text-sm font-medium text-gray-700 mb-2">Short Window</label>
+                            <input type="number" id="short_window" name="short_window" value="10" min="1" max="50"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Fast moving average period (days)</p>
+                        </div>
+                        <div>
+                            <label for="long_window" class="block text-sm font-medium text-gray-700 mb-2">Long Window</label>
+                            <input type="number" id="long_window" name="long_window" value="30" min="10" max="200"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Slow moving average period (days)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mean Reversion Parameters -->
+                <div id="mrParams" class="hidden border-t pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-wave-square me-2 text-primary-600"></i>Mean Reversion Parameters
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label for="window" class="block text-sm font-medium text-gray-700 mb-2">Window</label>
+                            <input type="number" id="window" name="window" value="20" min="5" max="100"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Bollinger Bands period (days)</p>
+                        </div>
+                        <div>
+                            <label for="std_dev" class="block text-sm font-medium text-gray-700 mb-2">Standard Deviation</label>
+                            <input type="number" id="std_dev" name="std_dev" value="2.0" min="0.5" max="5.0" step="0.1"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Bollinger Bands standard deviation multiplier</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="border-t pt-6">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Backtest will be executed with the above parameters
+                    </div>
+                    <button type="submit" id="runBacktestBtn"
+                            class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                        <i class="fas fa-play"></i>
+                        <span>Run Backtest</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Strategy Descriptions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-chart-line me-2 text-primary-600"></i>Moving Average Crossover
+            </h3>
+            <div class="text-gray-600 space-y-2">
+                <p class="text-sm">
+                    A classic momentum strategy that generates buy signals when the short-term 
+                    moving average crosses above the long-term moving average.
+                </p>
+                <p class="text-sm">
+                    <strong>Best for:</strong> Trending markets with clear directional moves.
+                </p>
+                <p class="text-sm">
+                    <strong>Parameters:</strong> Short window (fast MA) and long window (slow MA).
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-wave-square me-2 text-primary-600"></i>Mean Reversion
+            </h3>
+            <div class="text-gray-600 space-y-2">
+                <p class="text-sm">
+                    A contrarian strategy using Bollinger Bands that buys when price hits 
+                    the lower band and sells when it hits the upper band.
+                </p>
+                <p class="text-sm">
+                    <strong>Best for:</strong> Range-bound markets with high volatility.
+                </p>
+                <p class="text-sm">
+                    <strong>Parameters:</strong> Window (period) and standard deviation multiplier.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Symbols -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-star me-2 text-yellow-500"></i>Popular Symbols
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <button type="button" onclick="setSymbol('AAPL')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                AAPL
+            </button>
+            <button type="button" onclick="setSymbol('MSFT')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                MSFT
+            </button>
+            <button type="button" onclick="setSymbol('GOOGL')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                GOOGL
+            </button>
+            <button type="button" onclick="setSymbol('AMZN')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                AMZN
+            </button>
+            <button type="button" onclick="setSymbol('TSLA')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                TSLA
+            </button>
+            <button type="button" onclick="setSymbol('SPY')" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-primary-100 text-gray-700 hover:text-primary-700 rounded font-medium transition-colors">
+                SPY
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default dates
+        const today = new Date();
+        const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+        
+        document.getElementById('end_date').value = today.toISOString().split('T')[0];
+        document.getElementById('start_date').value = oneYearAgo.toISOString().split('T')[0];
+        
+        // Strategy type change handler
+        document.getElementById('strategy_type').addEventListener('change', function() {
+            const strategyType = this.value;
+            const strategyParams = document.getElementById('strategyParams');
+            const maParams = document.getElementById('maParams');
+            const mrParams = document.getElementById('mrParams');
+            
+            // Hide all parameter sections
+            maParams.classList.add('hidden');
+            mrParams.classList.add('hidden');
+            
+            if (strategyType) {
+                strategyParams.classList.remove('hidden');
+                
+                if (strategyType === 'ma_crossover') {
+                    maParams.classList.remove('hidden');
+                } else if (strategyType === 'mean_reversion') {
+                    mrParams.classList.remove('hidden');
+                }
+            } else {
+                strategyParams.classList.add('hidden');
+            }
+        });
+        
+        // Symbol validation
+        let symbolTimeout;
+        document.getElementById('symbol').addEventListener('input', function() {
+            const symbol = this.value.trim().toUpperCase();
+            this.value = symbol;
+            
+            clearTimeout(symbolTimeout);
+            
+            if (symbol.length >= 1) {
+                symbolTimeout = setTimeout(() => validateSymbol(symbol), 500);
+            } else {
+                hideSymbolStatus();
+            }
+        });
+        
+        // Form validation
+        document.getElementById('backtestForm').addEventListener('submit', function(e) {
+            const strategyType = document.getElementById('strategy_type').value;
+            if (!strategyType) {
+                e.preventDefault();
+                alert('Please select a trading strategy');
+                return;
+            }
+            
+            const startDate = new Date(document.getElementById('start_date').value);
+            const endDate = new Date(document.getElementById('end_date').value);
+            
+            if (startDate >= endDate) {
+                e.preventDefault();
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            // Disable submit button and show loading
+            const btn = document.getElementById('runBacktestBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Running Backtest...</span>';
+        });
+    });
+    
+    function validateSymbol(symbol) {
+        showSymbolLoading();
+        
+        fetch(`/api/validate_symbol/${symbol}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    showSymbolValid();
+                } else {
+                    showSymbolInvalid();
+                }
+            })
+            .catch(error => {
+                console.error('Symbol validation error:', error);
+                hideSymbolStatus();
+            });
+    }
+    
+    function showSymbolLoading() {
+        document.getElementById('symbolStatus').classList.remove('hidden');
+        document.getElementById('symbolLoading').classList.remove('hidden');
+        document.getElementById('symbolValid').classList.add('hidden');
+        document.getElementById('symbolInvalid').classList.add('hidden');
+    }
+    
+    function showSymbolValid() {
+        document.getElementById('symbolLoading').classList.add('hidden');
+        document.getElementById('symbolValid').classList.remove('hidden');
+        document.getElementById('symbolInvalid').classList.add('hidden');
+    }
+    
+    function showSymbolInvalid() {
+        document.getElementById('symbolLoading').classList.add('hidden');
+        document.getElementById('symbolValid').classList.add('hidden');
+        document.getElementById('symbolInvalid').classList.remove('hidden');
+    }
+    
+    function hideSymbolStatus() {
+        document.getElementById('symbolStatus').classList.add('hidden');
+    }
+    
+    function setSymbol(symbol) {
+        document.getElementById('symbol').value = symbol;
+        validateSymbol(symbol);
+    }
+</script>
+{% endblock %}

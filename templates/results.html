@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Backtest Results - {{ result.strategy_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-chart-area text-3xl text-primary-600"></i>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ result.strategy_name }}</h1>
+                    <p class="text-gray-600">
+                        {{ result.symbol }} • {{ result.start_date.strftime('%B %d, %Y') }} - {{ result.end_date.strftime('%B %d, %Y') }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{{ url_for('strategy_config') }}" 
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus me-2"></i>New Backtest
+                </a>
+                <a href="{{ url_for('index') }}" 
+                   class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Return</p>
+                    <p class="text-2xl font-bold {{ 'text-success-600' if result.total_return > 0 else 'text-danger-600' }}">
+                        {{ "%.2f"|format(result.total_return) }}%
+                    </p>
+                </div>
+                <div class="p-3 rounded-lg {{ 'bg-success-100' if result.total_return > 0 else 'bg-danger-100' }}">
+                    <i class="fas fa-{{ 'arrow-up' if result.total_return > 0 else 'arrow-down' }} 
+                             {{ 'text-success-600' if result.total_return > 0 else 'text-danger-600' }} text-xl"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                ${{ "{:,.2f}".format(result.initial_capital) }} → ${{ "{:,.2f}".format(result.final_value) }}
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Sharpe Ratio</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {% if result.sharpe_ratio %}
+                            {{ "%.2f"|format(result.sharpe_ratio) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-100">
+                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Risk-adjusted return</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Max Drawdown</p>
+                    <p class="text-2xl font-bold text-danger-600">
+                        {% if result.max_drawdown %}
+                            {{ "%.2f"|format(result.max_drawdown) }}%
+                        {% else %}
+                            0.00%
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="p-3 rounded-lg bg-red-100">
+                    <i class="fas fa-arrow-down text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Maximum peak-to-trough decline</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Trades</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ result.total_trades }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-purple-100">
+                    <i class="fas fa-exchange-alt text-purple-600 text-xl"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Buy and sell transactions</p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Price Chart -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-chart-candlestick me-2 text-primary-600"></i>Price & Signals
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if price_chart %}
+                    <div id="priceChart"></div>
+                {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>Unable to generate price chart</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Portfolio Chart -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-chart-area me-2 text-success-600"></i>Portfolio Value
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if portfolio_chart %}
+                    <div id="portfolioChart"></div>
+                {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>Unable to generate portfolio chart</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategy Parameters -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-sliders-h me-2 text-gray-600"></i>Strategy Parameters
+            </h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Strategy</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ result.strategy_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Symbol</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ result.symbol }}</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Initial Capital</p>
+                    <p class="text-lg font-semibold text-gray-900">${{ "{:,.2f}".format(result.initial_capital) }}</p>
+                </div>
+                
+                {% set params = result.get_parameters() %}
+                {% if params %}
+                    {% for key, value in params.items() %}
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">{{ key.replace('_', ' ').title() }}</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ value }}</p>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade History -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-history me-2 text-gray-600"></i>Trade History
+                </h3>
+                <span class="text-sm text-gray-600">{{ trades|length }} total trades</span>
+            </div>
+        </div>
+
+        {% if trades %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for trade in trades %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ trade.date.strftime('%m/%d/%Y') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                         {{ 'bg-success-100 text-success-800' if trade.action == 'BUY' else 'bg-danger-100 text-danger-800' }}">
+                                <i class="fas fa-{{ 'arrow-up' if trade.action == 'BUY' else 'arrow-down' }} me-1"></i>
+                                {{ trade.action }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${{ "%.2f"|format(trade.price) }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ trade.quantity }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${{ "{:,.2f}".format(trade.value) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <i class="fas fa-exchange-alt text-4xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600">No trades executed during this backtest period</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Additional Insights -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-lightbulb me-2 text-yellow-500"></i>Key Insights
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Performance Summary</p>
+                        <p class="text-sm text-gray-600">
+                            {% if result.total_return > 0 %}
+                                The strategy generated a positive return of {{ "%.2f"|format(result.total_return) }}% 
+                                over the {{ ((result.end_date - result.start_date).days) }} day period.
+                            {% else %}
+                                The strategy resulted in a loss of {{ "%.2f"|format(abs(result.total_return)) }}% 
+                                over the {{ ((result.end_date - result.start_date).days) }} day period.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if result.sharpe_ratio %}
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-chart-line text-primary-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Risk Assessment</p>
+                        <p class="text-sm text-gray-600">
+                            {% if result.sharpe_ratio > 1 %}
+                                Excellent risk-adjusted returns with a Sharpe ratio of {{ "%.2f"|format(result.sharpe_ratio) }}.
+                            {% elif result.sharpe_ratio > 0.5 %}
+                                Good risk-adjusted returns with a Sharpe ratio of {{ "%.2f"|format(result.sharpe_ratio) }}.
+                            {% else %}
+                                Poor risk-adjusted returns with a Sharpe ratio of {{ "%.2f"|format(result.sharpe_ratio) }}.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="space-y-3">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-exchange-alt text-purple-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Trading Activity</p>
+                        <p class="text-sm text-gray-600">
+                            Executed {{ result.total_trades }} trades with an average of 
+                            {{ "%.1f"|format(result.total_trades / ((result.end_date - result.start_date).days / 30)) }} 
+                            trades per month.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Important Note</p>
+                        <p class="text-sm text-gray-600">
+                            This backtest uses historical data and may not reflect future performance. 
+                            Always consider transaction costs and market conditions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Render charts if data is available
+        {% if price_chart %}
+        const priceChartData = {{ price_chart|safe }};
+        Plotly.newPlot('priceChart', priceChartData.data, priceChartData.layout, {
+            responsive: true,
+            displayModeBar: false
+        });
+        {% endif %}
+        
+        {% if portfolio_chart %}
+        const portfolioChartData = {{ portfolio_chart|safe }};
+        Plotly.newPlot('portfolioChart', portfolioChartData.data, portfolioChartData.layout, {
+            responsive: true,
+            displayModeBar: false
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Algorithmic Trading Backtester{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Section -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Trading Dashboard</h1>
+                <p class="text-gray-600">Monitor your algorithmic trading strategies and performance</p>
+            </div>
+            <div class="flex space-x-4">
+                <a href="{{ url_for('strategy_config') }}" 
+                   class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus me-2"></i>New Backtest
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-primary-100">
+                    <i class="fas fa-chart-area text-primary-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Backtests</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ results|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-success-100">
+                    <i class="fas fa-trophy text-success-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Best Return</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {% if results %}
+                            {{ "%.2f"|format(results|map(attribute='total_return')|max) }}%
+                        {% else %}
+                            0.00%
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-yellow-100">
+                    <i class="fas fa-exchange-alt text-yellow-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Active Strategies</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {{ results|map(attribute='strategy_name')|unique|list|length }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-purple-100">
+                    <i class="fas fa-coins text-purple-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Avg. Capital</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {% if results %}
+                            ${{ "{:,.0f}".format(results|map(attribute='initial_capital')|sum / results|length) }}
+                        {% else %}
+                            $0
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Backtests -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-history me-2 text-gray-600"></i>Recent Backtests
+                </h2>
+                {% if results %}
+                <p class="text-sm text-gray-600">{{ results|length }} total results</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if results %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Strategy</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Return</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sharpe</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max DD</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for result in results %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ result.strategy_name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                                {{ result.symbol }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ result.start_date.strftime('%m/%d/%y') }} - {{ result.end_date.strftime('%m/%d/%y') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium {{ 'text-success-600' if result.total_return > 0 else 'text-danger-600' }}">
+                                {{ "%.2f"|format(result.total_return) }}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {% if result.sharpe_ratio %}
+                                {{ "%.2f"|format(result.sharpe_ratio) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {% if result.max_drawdown %}
+                                <span class="text-danger-600">{{ "%.2f"|format(result.max_drawdown) }}%</span>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ result.total_trades }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ result.created_at.strftime('%m/%d/%y %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="{{ url_for('results', backtest_id=result.id) }}" 
+                               class="text-primary-600 hover:text-primary-900 font-medium">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <div class="mx-auto max-w-md">
+                <i class="fas fa-chart-line text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No backtests yet</h3>
+                <p class="text-gray-600 mb-6">
+                    Get started by running your first algorithmic trading backtest. 
+                    Choose from our pre-built strategies or create your own.
+                </p>
+                <a href="{{ url_for('strategy_config') }}" 
+                   class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-rocket me-2"></i>Run Your First Backtest
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Links -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-rocket me-2 text-primary-600"></i>Quick Start
+            </h3>
+            <div class="space-y-3">
+                <a href="{{ url_for('strategy_config') }}" 
+                   class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-chart-line text-primary-600 w-8"></i>
+                    <div class="ml-3">
+                        <p class="font-medium text-gray-900">Moving Average Strategy</p>
+                        <p class="text-sm text-gray-600">Classic crossover strategy</p>
+                    </div>
+                </a>
+                <a href="{{ url_for('strategy_config') }}" 
+                   class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-wave-square text-primary-600 w-8"></i>
+                    <div class="ml-3">
+                        <p class="font-medium text-gray-900">Mean Reversion</p>
+                        <p class="text-sm text-gray-600">Bollinger Bands based</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-info-circle me-2 text-blue-600"></i>About
+            </h3>
+            <div class="text-gray-600 space-y-2">
+                <p class="text-sm">
+                    This backtester allows you to test algorithmic trading strategies 
+                    on historical market data from Yahoo Finance.
+                </p>
+                <p class="text-sm">
+                    <strong>Features:</strong> Multiple strategies, performance metrics, 
+                    interactive charts, and detailed analysis.
+                </p>
+                <p class="text-sm text-yellow-600">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    For educational purposes only. Not financial advice.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
