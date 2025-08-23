@@ -73,6 +73,6 @@ Preferred communication style: Simple, everyday language.
 - **Development Defaults**: Fallback configurations for local development environment
 
 ## Some Images of the Application
-(1.png)
-(2.png)
-(3.png)
+![1st ss](1.png)
+![2nd ss](2.png)
+![3rd ss](3.png)
