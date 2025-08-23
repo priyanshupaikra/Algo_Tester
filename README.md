@@ -71,3 +71,6 @@ Preferred communication style: Simple, everyday language.
 ## Environment Configuration
 - **Environment Variables**: DATABASE_URL for database connection, SESSION_SECRET for Flask sessions
 - **Development Defaults**: Fallback configurations for local development environment
+
+## Some Images of the Application
+(images/my-image.png)
