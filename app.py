@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# Configure logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 class Base(DeclarativeBase):
@@ -25,13 +25,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# initialize the app with the extension
+
 db.init_app(app)
 
 with app.app_context():
-    # Import models to ensure tables are created
+
     import models
     db.create_all()
 
-# Import routes after app creation
+
 import routes
