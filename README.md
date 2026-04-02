@@ -1,4 +1,4 @@
-# Overview
+# Algo Tester Overview
 
 This is an algorithmic trading backtester web application built with Flask that allows users to test trading strategies against historical stock data. The system fetches real-time market data from Yahoo Finance, executes various trading strategies (Moving Average Crossover and Mean Reversion), and provides comprehensive performance analytics with interactive visualizations.
 
@@ -71,3 +71,8 @@ Preferred communication style: Simple, everyday language.
 ## Environment Configuration
 - **Environment Variables**: DATABASE_URL for database connection, SESSION_SECRET for Flask sessions
 - **Development Defaults**: Fallback configurations for local development environment
+
+## Some Images of the Application
+![1st ss](1.png)
+![2nd ss](2.png)
+![3rd ss](3.png)
